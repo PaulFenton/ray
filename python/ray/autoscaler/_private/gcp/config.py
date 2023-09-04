@@ -751,6 +751,7 @@ def _add_iam_policy_binding(service_account, roles, crm):
 
 def _create_project_ssh_key_pair(project, public_key, ssh_user, compute):
     """Inserts an ssh-key into project commonInstanceMetadata"""
+    print("CALLED _create_project_ssh_key_pair")
 
     key_parts = public_key.split(" ")
 

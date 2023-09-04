@@ -272,7 +272,7 @@ class NodeUpdater:
                 first_conn_refused_time = None
                 while True:
                     if time.time() > deadline:
-                        raise Exception("wait_ready timeout exceeded.")
+                        raise Exception("wait_ready timeout of 9000 s exceeded.")
                     if self.provider.is_terminated(self.node_id):
                         raise Exception(
                             "wait_ready aborting because node "
