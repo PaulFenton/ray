@@ -170,8 +170,7 @@ class NodeProvider:
         mapping from deleted node ids to node metadata.
         """
         print("****************")
-        print(
-            f" *  TEMPORARILY BYPASSED THE TERMINATION OF NODE(s): {node_ids} *")
+        print(f" *  TEMPORARILY BYPASSED THE TERMINATION OF NODE(s): {node_ids} *")
         print("*************************")
         # for node_id in node_ids:
         #     logger.info("NodeProvider: {}: Terminating node".format(node_id))
