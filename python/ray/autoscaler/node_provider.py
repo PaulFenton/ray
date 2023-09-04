@@ -169,10 +169,10 @@ class NodeProvider:
         May be overridden with a batch method, which optionally may return a
         mapping from deleted node ids to node metadata.
         """
-        # print("*****************************************************************************************")
+        # print("****************")
         # print(
-        #     f" ******          TEMPORARILY BYPASSED THE TERMINATION OF NODE(s): {node_ids} ************")
-        # print("*******************************************************************************************")
+        # f" *  TEMPORARILY BYPASSED THE TERMINATION OF NODE(s): {node_ids} *")
+        # print("*************************")
         for node_id in node_ids:
             logger.info("NodeProvider: {}: Terminating node".format(node_id))
             self.terminate_node(node_id)
@@ -241,7 +241,6 @@ class NodeProvider:
 
     def prepare_for_head_node(self, cluster_config: Dict[str, Any]) -> Dict[str, Any]:
         """Returns a new cluster config with custom configs for head node."""
-        print(f"RETURNING CLUSTER CONFIG: {cluster_config}")
         return cluster_config
 
     @staticmethod
