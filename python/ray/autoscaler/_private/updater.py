@@ -432,7 +432,7 @@ class NodeUpdater:
                                         cli_logger.error("See above for stderr.")
 
                                     raise click.ClickException(
-                                        "Initialization command failed."
+                                        f"Initialization command failed :(): {e}"
                                     ) from None
                 else:
                     cli_logger.print(

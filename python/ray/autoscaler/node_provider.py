@@ -169,12 +169,9 @@ class NodeProvider:
         May be overridden with a batch method, which optionally may return a
         mapping from deleted node ids to node metadata.
         """
-        print("****************")
-        print(f" *  TEMPORARILY BYPASSED THE TERMINATION OF NODE(s): {node_ids} *")
-        print("*************************")
-        # for node_id in node_ids:
-        #     logger.info("NodeProvider: {}: Terminating node".format(node_id))
-        #     self.terminate_node(node_id)
+        for node_id in node_ids:
+            logger.info("NodeProvider: {}: Terminating node".format(node_id))
+            self.terminate_node(node_id)
         return None
 
     @property
