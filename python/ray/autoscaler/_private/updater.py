@@ -179,6 +179,8 @@ class NodeUpdater:
 
             if isinstance(e, click.ClickException):
                 # todo: why do we ignore this here
+                # todo: handle this better somehow?
+                cli_logger.error("Hidden Error: {}", str(e))
                 return
             raise
 
@@ -398,7 +400,7 @@ class NodeUpdater:
 
                 if self.initialization_commands:
                     with cli_logger.group(
-                        "Running initialization commands",
+                        f"Running initialization commands: {self.initialization_commands}",  # noqa: E501
                         _numbered=("[]", 4, NUM_SETUP_STEPS),
                     ):
                         global_event_system.execute_callback(
