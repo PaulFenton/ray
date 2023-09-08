@@ -283,7 +283,7 @@ class NodeUpdater:
 
                     try:
                         # Run outside of the container
-                        self.cmd_runner.run("uptime", timeout=10, run_env="auto")
+                        self.cmd_runner.run("uptime", timeout=10, run_env="host")
                         cli_logger.success("Success.")
                         return True
                     except ProcessRunnerError as e:
@@ -426,7 +426,7 @@ class NodeUpdater:
                                         ssh_options_override_ssh_key=self.auth_config.get(  # noqa: E501
                                             "ssh_private_key"
                                         ),
-                                        run_env="auto",
+                                        run_env="host",
                                     )
                                 except ProcessRunnerError as e:
                                     if e.msg_type == "ssh_command_failed":
