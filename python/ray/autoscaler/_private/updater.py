@@ -410,7 +410,8 @@ class NodeUpdater:
                             for i in range(5):
                                 time.sleep(60)
                                 cli_logger.error(
-                                    "Sleeping for {} more minutes...", 4 - i)
+                                    "Sleeping for {} more minutes...", 4 - i
+                                )
                         # TODO: DELETE ME
 
                         global_event_system.execute_callback(
