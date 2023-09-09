@@ -403,10 +403,16 @@ class NodeUpdater:
                         f"Running initialization commands: {self.initialization_commands}",  # noqa: E501
                         _numbered=("[]", 4, NUM_SETUP_STEPS),
                     ):
-                        cli_logger.error("Sleeping for 5 minutes...")
-                        for i in range(5):
-                            time.sleep(60)
-                            cli_logger.error("Sleeping for {} more minutes...", 4 - i)
+
+                        # TODO: DELETE ME
+                        if not self.is_head_node:
+                            cli_logger.error("Sleeping for 5 minutes...")
+                            for i in range(5):
+                                time.sleep(60)
+                                cli_logger.error(
+                                    "Sleeping for {} more minutes...", 4 - i)
+                        # TODO: DELETE ME
+
                         global_event_system.execute_callback(
                             CreateClusterEvent.run_initialization_cmd
                         )
