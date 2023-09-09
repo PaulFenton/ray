@@ -283,7 +283,8 @@ class NodeUpdater:
 
                     try:
                         # Run outside of the container
-                        self.cmd_runner.run("uptime", timeout=10, run_env="host")
+                        # run_env = "host" if self.is_head_node else "docker"
+                        self.cmd_runner.run("uptime", timeout=10, run_env="docker")
                         cli_logger.success("Success.")
                         return True
                     except ProcessRunnerError as e:
@@ -404,15 +405,15 @@ class NodeUpdater:
                         _numbered=("[]", 4, NUM_SETUP_STEPS),
                     ):
 
-                        # TODO: DELETE ME
-                        if not self.is_head_node:
-                            cli_logger.error("Sleeping for 5 minutes...")
-                            for i in range(5):
-                                time.sleep(60)
-                                cli_logger.error(
-                                    "Sleeping for {} more minutes...", 4 - i
-                                )
-                        # TODO: DELETE ME
+                        # # TODO: DELETE ME
+                        # if not self.is_head_node:
+                        #     cli_logger.error("Sleeping for 5 minutes...")
+                        #     for i in range(5):
+                        #         time.sleep(60)
+                        #         cli_logger.error(
+                        #             "Sleeping for {} more minutes...", 4 - i
+                        #         )
+                        # # TODO: DELETE ME
 
                         global_event_system.execute_callback(
                             CreateClusterEvent.run_initialization_cmd
