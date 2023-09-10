@@ -283,8 +283,7 @@ class NodeUpdater:
 
                     try:
                         # Run outside of the container
-                        # run_env = "host" if self.is_head_node else "docker"
-                        self.cmd_runner.run("uptime", timeout=10, run_env="docker")
+                        self.cmd_runner.run("uptime", timeout=10, run_env="host")
                         cli_logger.success("Success.")
                         return True
                     except ProcessRunnerError as e:
