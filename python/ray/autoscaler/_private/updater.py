@@ -284,7 +284,7 @@ class NodeUpdater:
                     try:
                         # Run outside of the container
                         origin_env = "auto"
-                        if not self.is_head_node:
+                        if self.is_head_node:
                             origin_env = "docker"
 
                         self.cmd_runner.run(
@@ -439,7 +439,7 @@ class NodeUpdater:
                                     # argument.
                                     # Run outside docker.
                                     origin_env = "auto"
-                                    if not self.is_head_node:
+                                    if self.is_head_node:
                                         origin_env = "docker"
 
                                     self.cmd_runner.run(
