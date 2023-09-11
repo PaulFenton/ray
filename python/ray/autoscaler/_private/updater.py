@@ -286,6 +286,7 @@ class NodeUpdater:
                         origin_env = "auto"
                         if self.is_head_node:
                             origin_env = "docker"
+                        cli_logger.print(f"RUNNING WITH is_head_node={self.is_head_node} and origin_env={origin_env}")  # noqa: E501
 
                         self.cmd_runner.run(
                             "uptime", timeout=10, run_env="host", origin_env=origin_env
