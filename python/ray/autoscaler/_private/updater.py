@@ -287,7 +287,7 @@ class NodeUpdater:
                         if not self.is_head_node:
                             origin_env = "docker"
                         cli_logger.print(
-                            f"RUNNING WITH is_head_node={self.is_head_node} and origin_env={origin_env}"
+                            f"RUNNING WITH is_head_node={self.is_head_node}"
                         )  # noqa: E501
 
                         self.cmd_runner.run(
@@ -445,7 +445,7 @@ class NodeUpdater:
                                     if not self.is_head_node:
                                         origin_env = "docker"
                                     cli_logger.print(
-                                        f"RUNNING WITH is_head_node={self.is_head_node} and origin_env={origin_env}"
+                                        f"RUNNING WITH is_head_node={self.is_head_node}"
                                     )  # noqa: E501
 
                                     self.cmd_runner.run(
