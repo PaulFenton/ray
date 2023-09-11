@@ -284,9 +284,11 @@ class NodeUpdater:
                     try:
                         # Run outside of the container
                         origin_env = "auto"
-                        if self.is_head_node:
+                        if not self.is_head_node:
                             origin_env = "docker"
-                        cli_logger.print(f"RUNNING WITH is_head_node={self.is_head_node} and origin_env={origin_env}")  # noqa: E501
+                        cli_logger.print(
+                            f"RUNNING WITH is_head_node={self.is_head_node} and origin_env={origin_env}"
+                        )  # noqa: E501
 
                         self.cmd_runner.run(
                             "uptime", timeout=10, run_env="host", origin_env=origin_env
@@ -412,13 +414,13 @@ class NodeUpdater:
                     ):
 
                         # TODO: DELETE ME
-                        if not self.is_head_node:
-                            cli_logger.error("Sleeping for 5 minutes...")
-                            for i in range(5):
-                                time.sleep(60)
-                                cli_logger.error(
-                                    "Sleeping for {} more minutes...", 4 - i
-                                )
+                        # if not self.is_head_node:
+                        #     cli_logger.error("Sleeping for 5 minutes...")
+                        #     for i in range(5):
+                        #         time.sleep(60)
+                        #         cli_logger.error(
+                        #             "Sleeping for {} more minutes...", 4 - i
+                        #         )
                         # TODO: DELETE ME
 
                         global_event_system.execute_callback(
@@ -440,8 +442,11 @@ class NodeUpdater:
                                     # argument.
                                     # Run outside docker.
                                     origin_env = "auto"
-                                    if self.is_head_node:
+                                    if not self.is_head_node:
                                         origin_env = "docker"
+                                    cli_logger.print(
+                                        f"RUNNING WITH is_head_node={self.is_head_node} and origin_env={origin_env}"
+                                    )  # noqa: E501
 
                                     self.cmd_runner.run(
                                         cmd,
