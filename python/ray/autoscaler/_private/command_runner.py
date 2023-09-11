@@ -370,7 +370,7 @@ class SSHCommandRunner(CommandRunnerInterface):
             final_cmd.append("while true; do sleep 86400; done")
 
         if origin_env == "docker":
-            final_cmd = f"docker exec -it {self.container_name} {final_cmd}"
+            final_cmd = f"docker exec -it numerai-head {final_cmd}"
 
         cli_logger.verbose("Running `{}`", cf.bold(cmd))
         with cli_logger.indented():
