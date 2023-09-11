@@ -314,6 +314,7 @@ class SSHCommandRunner(CommandRunnerInterface):
         ssh_options_override_ssh_key="",
         shutdown_after_run=False,
         silent=False,
+        origin_env="auto"
     ):
         if shutdown_after_run:
             cmd += "; sudo shutdown -h now"
@@ -367,6 +368,9 @@ class SSHCommandRunner(CommandRunnerInterface):
             # We do this because `-o ControlMaster` causes the `-N` flag to
             # still create an interactive shell in some ssh versions.
             final_cmd.append("while true; do sleep 86400; done")
+
+        if origin_env == "docker":
+            final_cmd = f"docker exec -it {self.container_name} {final_cmd}"
 
         cli_logger.verbose("Running `{}`", cf.bold(cmd))
         with cli_logger.indented():
@@ -463,6 +467,7 @@ class DockerCommandRunner(CommandRunnerInterface):
         run_env="auto",
         ssh_options_override_ssh_key="",
         shutdown_after_run=False,
+        origin_env="auto"
     ):
         if run_env == "auto":
             run_env = (
@@ -497,6 +502,7 @@ class DockerCommandRunner(CommandRunnerInterface):
             port_forward=port_forward,
             with_output=with_output,
             ssh_options_override_ssh_key=ssh_options_override_ssh_key,
+            origin_env=origin_env
         )
 
     def run_rsync_up(self, source, target, options=None):
