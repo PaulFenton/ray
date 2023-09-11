@@ -314,7 +314,7 @@ class SSHCommandRunner(CommandRunnerInterface):
         ssh_options_override_ssh_key="",
         shutdown_after_run=False,
         silent=False,
-        origin_env="auto"
+        origin_env="auto",
     ):
         if shutdown_after_run:
             cmd += "; sudo shutdown -h now"
@@ -467,7 +467,7 @@ class DockerCommandRunner(CommandRunnerInterface):
         run_env="auto",
         ssh_options_override_ssh_key="",
         shutdown_after_run=False,
-        origin_env="auto"
+        origin_env="auto",
     ):
         if run_env == "auto":
             run_env = (
@@ -502,7 +502,7 @@ class DockerCommandRunner(CommandRunnerInterface):
             port_forward=port_forward,
             with_output=with_output,
             ssh_options_override_ssh_key=ssh_options_override_ssh_key,
-            origin_env=origin_env
+            origin_env=origin_env,
         )
 
     def run_rsync_up(self, source, target, options=None):
