@@ -141,7 +141,6 @@ py_test_module_list(
     "test_multinode_failures_2.py",
     "test_node_manager.py",
     "test_object_assign_owner.py",
-    "test_placement_group.py",
     "test_placement_group_2.py",
     "test_placement_group_4.py",
     "test_placement_group_failover.py",
@@ -175,6 +174,11 @@ py_test_module_list(
     "test_traceback.py",
     "test_queue.py",
     "test_draining.py",
+    "test_streaming_generator.py",
+    "test_streaming_generator_2.py",
+    "test_streaming_generator_3.py",
+    "test_scheduling_performance.py",
+    "test_implicit_resource.py",
   ],
   size = "medium",
   tags = ["exclusive", "medium_size_python_tests_k_to_z", "team:core"],
@@ -204,10 +208,8 @@ py_test_module_list(
     "test_mini.py",
     "test_minimal_install.py",
     "test_numba.py",
-    "test_runtime_env_agent.py",
     "test_redis_tls.py",
     "test_raylet_output.py",
-    "test_scheduling_performance.py",
     "test_top_level_api.py",
     "test_unhandled_error.py",
     "test_utils.py",
@@ -221,6 +223,7 @@ py_test_module_list(
 py_test_module_list(
   files = [
     "test_gcs_ha_e2e.py",
+    "test_gcs_ha_e2e_2.py",
     "test_memory_pressure.py",
     "test_node_labels.py",
   ],
@@ -300,7 +303,6 @@ py_test_module_list(
     "test_multi_node.py",
     "test_threaded_actor.py",
     "test_generators.py",
-    "test_streaming_generator.py",
     "test_stress_failure.py",
     "test_state_api.py",
     "test_state_api_2.py",
@@ -315,6 +317,7 @@ py_test_module_list(
     "test_reference_counting_2.py",
     "test_exit_observability.py",
     "test_usage_stats.py",
+    "test_placement_group.py",
     "test_placement_group_3.py",
     "test_placement_group_5.py",
     "test_cancel.py",
@@ -400,6 +403,14 @@ py_test(
     name = "test_actor_group",
     size = "medium",
     srcs = ["test_actor_group.py"],
+    tags = ["exclusive", "medium_size_python_tests_a_to_j", "team:core"],
+    deps = ["//:ray_lib", ":conftest"]
+)
+
+py_test(
+    name = "test_runtime_env_agent",
+    size = "medium",
+    srcs = ["test_runtime_env_agent.py"],
     tags = ["exclusive", "medium_size_python_tests_a_to_j", "team:core"],
     deps = ["//:ray_lib", ":conftest"]
 )

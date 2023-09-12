@@ -36,6 +36,7 @@ from typing import (
 import contextvars
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future as ConcurrentFuture
 
 from libc.stdint cimport (
     int32_t,
@@ -128,8 +129,10 @@ from ray.includes.common cimport (
     WORKER_EXIT_TYPE_USER_ERROR,
     WORKER_EXIT_TYPE_SYSTEM_ERROR,
     kResourceUnitScaling,
+    kImplicitResourcePrefix,
     kWorkerSetupHookKeyName,
     PythonCheckGcsHealth,
+    PythonGetNodeLabels,
 )
 from ray.includes.unique_ids cimport (
     CActorID,
@@ -153,7 +156,7 @@ from ray.includes.libcoreworker cimport (
 
 from ray.includes.ray_config cimport RayConfig
 from ray.includes.global_state_accessor cimport CGlobalStateAccessor
-from ray.includes.global_state_accessor cimport RedisDelKeySync
+from ray.includes.global_state_accessor cimport RedisDelKeySync, RedisGetKeySync
 from ray.includes.optional cimport (
     optional, nullopt
 )
@@ -303,8 +306,9 @@ class StreamingObjectRefGenerator:
         return await self._next_async()
 
     def _next_sync(
-            self,
-            timeout_s: Optional[float] = None) -> ObjectRef:
+        self,
+        timeout_s: Optional[float] = None
+    ) -> ObjectRef:
         """Waits for timeout_s and returns the object ref if available.
 
         If an object is not available within the given timeout, it
@@ -312,8 +316,7 @@ class StreamingObjectRefGenerator:
 
         If -1 timeout is provided, it means it waits infinitely.
 
-        Waiting is implemented as busy waiting. You can control
-        the busy waiting interval via sleep_interval_s.
+        Waiting is implemented as busy waiting.
 
         Raises StopIteration if there's no more objects
         to generate.
@@ -372,8 +375,8 @@ class StreamingObjectRefGenerator:
 
     async def _next_async(
             self,
-            timeout_s: Optional[float] = None,
-            sleep_interval_s: float = 0.0001):
+            timeout_s: Optional[float] = None
+    ):
         """Same API as _next_sync, but it is for async context."""
         self.worker.check_connected()
         core_worker = self.worker.core_worker
@@ -432,6 +435,8 @@ cdef int check_status(const CRayStatus& status) nogil except -1:
 
     if status.IsObjectStoreFull():
         raise ObjectStoreFullError(message)
+    if status.IsInvalidArgument():
+        raise ValueError(message)
     elif status.IsOutOfDisk():
         raise OutOfDiskError(message)
     elif status.IsObjectRefEndOfStream():
@@ -1832,7 +1837,7 @@ cdef execute_task_with_cancellation_handler(
     task_name = name.decode("utf-8")
     title = f"ray::{task_name}"
 
-    # Automatically restrict the GPUs (CUDA), neuron_core accelerator
+    # Automatically restrict the GPUs (CUDA), neuron_core, TPU accelerator
     # runtime_ids to restrict availability to this task.
     ray._private.utils.set_gpu_and_accelerator_runtime_ids()
 
@@ -2217,7 +2222,7 @@ cdef void cancel_async_task(
             function_descriptor, name_of_concurrency_group_to_execute)
         future = worker.core_worker.get_queued_future(task_id)
         if future is not None:
-            eventloop.call_soon_threadsafe(future.cancel)
+            future.cancel()
         # else, the task is already finished. If the task
         # wasn't finished (task is queued on a client or server side),
         # this method shouldn't have been called.
@@ -2551,7 +2556,8 @@ cdef class GcsClient:
         for node_info in node_infos:
             result[node_info.node_id()] = {
                 "node_name": node_info.node_name(),
-                "state": node_info.state()
+                "state": node_info.state(),
+                "labels": PythonGetNodeLabels(node_info)
             }
         return result
 
@@ -3001,8 +3007,8 @@ cdef class CoreWorker:
         self.fd_to_cgname_dict = None
         self.eventloop_for_default_cg = None
         self.current_runtime_env = None
-        self.task_id_to_future_lock = threading.Lock()
-        self.task_id_to_future = {}
+        self._task_id_to_future_lock = threading.Lock()
+        self._task_id_to_future = {}
         self.thread_pool_for_async_event_loop = None
 
     def shutdown(self):
@@ -3066,6 +3072,9 @@ cdef class CoreWorker:
     def get_actor_id(self):
         return ActorID(
             CCoreWorkerProcess.GetCoreWorker().GetActorId().Binary())
+
+    def get_actor_name(self):
+        return CCoreWorkerProcess.GetCoreWorker().GetActorName()
 
     def get_placement_group_id(self):
         return PlacementGroupID(
@@ -3792,6 +3801,9 @@ cdef class CoreWorker:
             status = CCoreWorkerProcess.GetCoreWorker().CancelTask(
                                             c_object_id, force_kill, recursive)
 
+        if status.IsInvalidArgument():
+            raise ValueError(status.message().decode())
+
         if not status.ok():
             raise TypeError(status.message().decode())
 
@@ -4261,9 +4273,8 @@ cdef class CoreWorker:
 
         future = asyncio.run_coroutine_threadsafe(async_func(), eventloop)
         if task_id:
-            with self.task_id_to_future_lock:
-                self.task_id_to_future[task_id] = asyncio.wrap_future(
-                    future, loop=eventloop)
+            with self._task_id_to_future_lock:
+                self._task_id_to_future[task_id] = future
 
         future.add_done_callback(lambda _: event.Notify())
         with nogil:
@@ -4275,8 +4286,8 @@ cdef class CoreWorker:
             raise TaskCancelledError(task_id)
         finally:
             if task_id:
-                with self.task_id_to_future_lock:
-                    self.task_id_to_future.pop(task_id)
+                with self._task_id_to_future_lock:
+                    self._task_id_to_future.pop(task_id)
         return result
 
     def stop_and_join_asyncio_threads_if_exist(self):
@@ -4307,14 +4318,10 @@ cdef class CoreWorker:
         return (CCoreWorkerProcess.GetCoreWorker().GetWorkerContext()
                 .CurrentActorMaxConcurrency())
 
-    def get_queued_future(self, task_id: Optional[TaskID]) -> asyncio.Future:
+    def get_queued_future(self, task_id: Optional[TaskID]) -> ConcurrentFuture:
         """Get a asyncio.Future that's queued in the event loop."""
-        with self.task_id_to_future_lock:
-            return self.task_id_to_future.get(task_id)
-
-    def get_task_id_to_future(self):
-        # Testing-only
-        return self.task_id_to_future
+        with self._task_id_to_future_lock:
+            return self._task_id_to_future.get(task_id)
 
     def get_current_runtime_env(self) -> str:
         # This should never change, so we can safely cache it to avoid ser/de
@@ -4394,12 +4401,16 @@ cdef class CoreWorker:
             postincrement(it)
         return tasks_count
 
-    def set_get_async_callback(self, ObjectRef object_ref, callback):
-        cpython.Py_INCREF(callback)
+    def set_get_async_callback(self, ObjectRef object_ref, user_callback: Callable):
+        # NOTE: we need to manually increment the Python reference count to avoid the
+        # callback object being garbage collected before it's called by the core worker.
+        # This means we *must* guarantee that the ref is manually decremented to avoid
+        # a leak.
+        cpython.Py_INCREF(user_callback)
         CCoreWorkerProcess.GetCoreWorker().GetAsync(
             object_ref.native(),
             async_callback,
-            <void*>callback
+            <void*>user_callback
         )
 
     def push_error(self, JobID job_id, error_type, error_message,
@@ -4547,23 +4558,49 @@ cdef class CoreWorker:
 
 cdef void async_callback(shared_ptr[CRayObject] obj,
                          CObjectID object_ref,
-                         void *user_callback) with gil:
+                         void *user_callback_ptr) with gil:
     cdef:
         c_vector[shared_ptr[CRayObject]] objects_to_deserialize
 
-    # Object is retrieved from in memory store.
-    # Here we go through the code path used to deserialize objects.
-    objects_to_deserialize.push_back(obj)
-    data_metadata_pairs = RayObjectsToDataMetadataPairs(
-        objects_to_deserialize)
-    ids_to_deserialize = [ObjectRef(object_ref.Binary())]
-    result = ray._private.worker.global_worker.deserialize_objects(
-        data_metadata_pairs, ids_to_deserialize)[0]
+    try:
+        # Object is retrieved from in memory store.
+        # Here we go through the code path used to deserialize objects.
+        objects_to_deserialize.push_back(obj)
+        data_metadata_pairs = RayObjectsToDataMetadataPairs(
+            objects_to_deserialize)
+        ids_to_deserialize = [ObjectRef(object_ref.Binary())]
+        result = ray._private.worker.global_worker.deserialize_objects(
+            data_metadata_pairs, ids_to_deserialize)[0]
 
-    py_callback = <object>user_callback
-    py_callback(result)
-    cpython.Py_DECREF(py_callback)
+        user_callback = <object>user_callback_ptr
+        user_callback(result)
+    finally:
+        # NOTE: we manually increment the Python reference count of the callback when
+        # registering it in the core worker, so we must decrement here to avoid a leak.
+        cpython.Py_DECREF(user_callback)
 
 
 def del_key_from_storage(host, port, password, use_ssl, key):
     return RedisDelKeySync(host, port, password, use_ssl, key)
+
+
+def get_session_key_from_storage(host, port, password, use_ssl, config, key):
+    """
+    Get the session key from the storage.
+    Intended to be used for session_name only.
+    Args:
+        host: The address of the owner (caller) of the
+            generator task.
+        port: The task ID of the generator task.
+        password: The redis password.
+        use_ssl: Whether to use SSL.
+        config: The Ray config. Used to get storage namespace.
+        key: The key to retrieve.
+    """
+    cdef:
+        c_string data
+    result = RedisGetKeySync(host, port, password, use_ssl, config, key, &data)
+    if result:
+        return data
+    else:
+        return None
